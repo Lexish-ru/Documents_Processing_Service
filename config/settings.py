@@ -36,7 +36,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'documents',
+    'documents.apps.DocumentsConfig',
     'rest_framework',
     'drf_spectacular',
     'django.contrib.admin',
