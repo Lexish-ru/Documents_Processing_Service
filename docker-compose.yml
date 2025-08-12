@@ -21,12 +21,15 @@ services:
     env_file: .env
     volumes:
       - .:/app
+      - .static:/static
+      - .media:/media
     ports:
       - "8000:8000"
     depends_on:
       - db
       - redis
-    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: bash -c "python manage.py collectstatic --noinput &&
+                      python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 
   celery:
     build: .
@@ -38,6 +41,20 @@ services:
       - db
     command: bash -c "celery -A config worker -l info"
 
+  nginx:
+    image: nginx:1.27
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - .static:/static
+      - .media:/media
+    depends_on:
+      - web
+
+
 
 volumes:
   pgdata:
+  static:
+  media:
