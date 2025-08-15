@@ -98,6 +98,7 @@ jobs:
         run: |
           cat > .env <<'EOF'
           DJANGO_SETTINGS_MODULE: config.settings
+          DJANGO_ALLOWED_HOSTS=*
           SECRET_KEY: dummy-ci-only
           POSTGRES_DB: test_db
           POSTGRES_USER: postgres
