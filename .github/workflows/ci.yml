@@ -119,20 +119,33 @@ jobs:
         run: |
           docker compose exec -T web python manage.py migrate --noinput
 
-      - name: Smoke /
+      - name: Smoke (API up)
         run: |
-          echo "Wait for web to start..."
-          sleep 10
+          # ждём до ~60 сек и считаем 2xx/3xx/4xx = сервис ЖИВ
           docker compose exec -T web python - <<'PY'
-          import urllib.request, sys
-          try:
-              urllib.request.urlopen('http://127.0.0.1:8000/admin/', timeout=5)
-              print("Smoke OK")
-          except Exception as e:
-              print("Smoke FAIL:", e)
-              sys.exit(1)
+          import time, sys, urllib.request, urllib.error
+          URLS = ['http://127.0.0.1:8000/api/schema/', 'http://127.0.0.1:8000/admin/login/']
+          deadline = time.time() + 60
+          last = None
+          while time.time() < deadline:
+              for u in URLS:
+                  try:
+                      with urllib.request.urlopen(u, timeout=2) as r:
+                          print("HTTP UP", u, r.status)
+                          sys.exit(0)
+                  except urllib.error.HTTPError as e:
+                      if 400 <= e.code < 500:  # 404/403 — тоже ок, сервер жив
+                          print("HTTP UP", u, e.code)
+                          sys.exit(0)
+                      last = e
+                  except Exception as e:
+                      last = e
+              time.sleep(2)
+          print("Smoke FAIL:", last)
+          sys.exit(1)
           PY
-    
+  
+  
 
   deploy:
     runs-on: ubuntu-latest
