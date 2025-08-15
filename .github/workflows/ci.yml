@@ -97,14 +97,13 @@ jobs:
       - name: Create .env for CI
         run: |
           cat > .env <<'EOF'
-          DJANGO_SETTINGS_MODULE: config.settings
           DJANGO_ALLOWED_HOSTS=*
-          SECRET_KEY: dummy-ci-only
-          POSTGRES_DB: test_db
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST: db
-          POSTGRES_PORT: "5432"
+          DJANGO_SECRET_KEY=dummy-ci-only
+          POSTGRES_DB=test_db
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=postgres
+          POSTGRES_HOST=db
+          POSTGRES_PORT=5432
           REDIS_URL=redis://redis:6379/0
           DEFAULT_FROM_EMAIL=noreply@example.com
           ADMIN_EMAIL=admin@example.com
