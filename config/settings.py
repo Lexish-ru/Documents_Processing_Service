@@ -158,8 +158,6 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # dev
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@example.com")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
 
-#CORS
-
 CORS_ALLOW_ALL_ORIGINS = bool(int(os.getenv("CORS_ALLOW_ALL_ORIGINS", "1" if DEBUG else "0")))
 
 # если ALL_ORIGINS=0, читаем список доменов (через запятую)
