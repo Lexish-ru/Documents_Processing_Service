@@ -3,6 +3,7 @@ from django.utils import timezone
 from .models import Document
 from .tasks import send_user_document_status_email
 
+
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
     list_display = ("id", "owner", "status", "uploaded_at", "reviewed_at")

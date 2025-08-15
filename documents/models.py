@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 
+
 class Document(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
