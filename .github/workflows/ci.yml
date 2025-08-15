@@ -87,102 +87,57 @@ jobs:
         run: pytest
 
 
-  image-smoke:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build image
-        run: docker build -t app/web:ci -f Dockerfile .
-      - name: Compose up (db+redis+web)
+    image-smoke:
+      runs-on: ubuntu-latest
+      needs: test
+      steps:
+        - uses: actions/checkout@v4
+
+        - name: Build & up
+          run: |
+           docker compose -f docker-compose.yml \
+           up -d --build db redis web
+
+        - name: Migrate
+          run: |
+            docker compose exec -T web python manage.py migrate --noinput
+
+        - name: Smoke /
+          run: |
+            docker compose exec -T web python - <<'PY'
+            import urllib.request, sys
+            try:
+                urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)
+                print("Smoke OK")
+            except Exception as e:
+                print("Smoke FAIL:", e)
+                sys.exit(1)
+            PY
+    
+
+    deploy:
+      runs-on: ubuntu-latest
+      needs: image-smoke
+
+      steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add Server to known_hosts
         run: |
-          cat > docker-compose.ci.yml <<'YAML'
-          services:
-            db:
-              image: postgres:16
-              environment:
-                POSTGRES_DB: app
-                POSTGRES_USER: app
-                POSTGRES_PASSWORD: app
-              healthcheck:
-                test: ["CMD-SHELL", "pg_isready -U app -d app"]
-                interval: 5s
-                timeout: 3s
-                retries: 20
-            redis:
-              image: redis:7
-              healthcheck:
-                test: ["CMD", "redis-cli", "ping"]
-                interval: 5s
-                timeout: 3s
-                retries: 20
-            web:
-              image: app/web:ci
-              environment:
-                DJANGO_SETTINGS_MODULE: config.settings
-                POSTGRES_DB: app
-                POSTGRES_USER: app
-                POSTGRES_PASSWORD: app
-                POSTGRES_HOST: db
-                POSTGRES_PORT: "5432"
-                REDIS_URL: redis://redis:6379/0
-              depends_on:
-                db:
-                  condition: service_healthy
-                redis:
-                  condition: service_healthy
-              healthcheck:
-                test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/|| exit 1"]
-                interval: 5s
-                timeout: 3s
-                retries: 30
-          YAML
-          docker compose -f docker-compose.ci.yml up -d
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Run migrations inside web container
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Copy project files to server
         run: |
-          cid=$(docker compose -f docker-compose.ci.yml ps -q web)
-          docker exec "$cid" python manage.py migrate --noinput
+          rsync -avz --exclude '__pycache__' . ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_DIR }}
 
-
-      - name: Wait web healthy
+      - name: Run docker-compose up
         run: |
-          for i in {1..60}; do
-            cid=$(docker compose -f docker-compose.ci.yml ps -q web)
-            st=$(docker inspect --format='{{.State.Health.Status}}' "$cid" 2>/dev/null || echo starting)
-            [ "$st" = "healthy" ] && echo "healthy" && exit 0
-            sleep 1
-          done
-          docker compose -f docker-compose.ci.yml logs web
-          exit 1
-      - name: Smoke /
-        run: |
-          cid=$(docker compose -f docker-compose.ci.yml ps -q web)
-          docker exec "$cid" sh -lc "apk add curl 2>/dev/null || true; curl -fsS http://127.0.0.1:8000/ || exit 1"
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: image-smoke
-
-    steps:
-    - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_KEY }}
-
-    - name: Add Server to known_hosts
-      run: |
-        ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
-
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Copy project files to server
-      run: |
-        rsync -avz --exclude '__pycache__' . ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_DIR }}
-
-    - name: Run docker-compose up
-      run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.DEPLOY_DIR }} && docker-compose pull &&
-        docker-compose up -d
-        "
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.DEPLOY_DIR }} && docker-compose pull &&
+          docker-compose up -d
+          "
