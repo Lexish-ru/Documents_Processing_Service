@@ -21,7 +21,7 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
       SECRET_KEY: dummy-ci-only
-      DJANGO_SETTINGS_MODULE: habits_project.settings
+      DJANGO_SETTINGS_MODULE: config.settings
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -52,7 +52,7 @@ jobs:
           --health-retries=20
 
     env:
-      DJANGO_SETTINGS_MODULE: habits_project.settings
+      DJANGO_SETTINGS_MODULE: config.settings
       SECRET_KEY: dummy-ci-only
       POSTGRES_DB: test_db
       POSTGRES_USER: postgres
@@ -119,7 +119,7 @@ jobs:
             backend:
               image: app/backend:ci
               environment:
-                DJANGO_SETTINGS_MODULE: habits_project.settings
+                DJANGO_SETTINGS_MODULE: config.settings
                 POSTGRES_DB: app
                 POSTGRES_USER: app
                 POSTGRES_PASSWORD: app
@@ -132,7 +132,7 @@ jobs:
                 redis:
                   condition: service_healthy
               healthcheck:
-                test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/api/public-habits/|| exit 1"]
+                test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/|| exit 1"]
                 interval: 5s
                 timeout: 3s
                 retries: 30
@@ -158,7 +158,7 @@ jobs:
       - name: Smoke /
         run: |
           cid=$(docker compose -f docker-compose.ci.yml ps -q backend)
-          docker exec "$cid" sh -lc "apk add curl 2>/dev/null || true; curl -fsS http://127.0.0.1:8000/api/public-habits/ || exit 1"
+          docker exec "$cid" sh -lc "apk add curl 2>/dev/null || true; curl -fsS http://127.0.0.1:8000/ || exit 1"
 
   deploy:
     runs-on: ubuntu-latest
