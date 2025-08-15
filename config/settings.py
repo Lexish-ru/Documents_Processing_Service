@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'documents.apps.DocumentsConfig',
     'rest_framework',
     'drf_spectacular',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -155,3 +157,23 @@ CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/0")
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # dev
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@example.com")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
+
+#CORS
+
+CORS_ALLOW_ALL_ORIGINS = bool(int(os.getenv("CORS_ALLOW_ALL_ORIGINS", "1" if DEBUG else "0")))
+
+# если ALL_ORIGINS=0, читаем список доменов (через запятую)
+CORS_ALLOWED_ORIGINS = [
+    o for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()
+]
+
+# если используешь cookie/SessionAuth из фронта
+CORS_ALLOW_CREDENTIALS = True
+
+# ограничим CORS только API-роутами (необязательно, но полезно)
+CORS_URLS_REGEX = r"^/api/.*$"
+
+# для cookie/CSRF через другой домен (нужно при SessionAuth, DRF Browsable и админке)
+CSRF_TRUSTED_ORIGINS = [
+    o for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
+    ]
