@@ -93,8 +93,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build image
-        run: docker build -t app/backend:ci -f Dockerfile .
-      - name: Compose up (db+redis+backend)
+        run: docker build -t app/web:ci -f Dockerfile .
+      - name: Compose up (db+redis+web)
         run: |
           cat > docker-compose.ci.yml <<'YAML'
           services:
@@ -116,8 +116,8 @@ jobs:
                 interval: 5s
                 timeout: 3s
                 retries: 20
-            backend:
-              image: app/backend:ci
+            web:
+              image: app/web:ci
               environment:
                 DJANGO_SETTINGS_MODULE: config.settings
                 POSTGRES_DB: app
@@ -139,25 +139,25 @@ jobs:
           YAML
           docker compose -f docker-compose.ci.yml up -d
 
-      - name: Run migrations inside backend container
+      - name: Run migrations inside web container
         run: |
-          cid=$(docker compose -f docker-compose.ci.yml ps -q backend)
+          cid=$(docker compose -f docker-compose.ci.yml ps -q web)
           docker exec "$cid" python manage.py migrate --noinput
 
 
-      - name: Wait backend healthy
+      - name: Wait web healthy
         run: |
           for i in {1..60}; do
-            cid=$(docker compose -f docker-compose.ci.yml ps -q backend)
+            cid=$(docker compose -f docker-compose.ci.yml ps -q web)
             st=$(docker inspect --format='{{.State.Health.Status}}' "$cid" 2>/dev/null || echo starting)
             [ "$st" = "healthy" ] && echo "healthy" && exit 0
             sleep 1
           done
-          docker compose -f docker-compose.ci.yml logs backend
+          docker compose -f docker-compose.ci.yml logs web
           exit 1
       - name: Smoke /
         run: |
-          cid=$(docker compose -f docker-compose.ci.yml ps -q backend)
+          cid=$(docker compose -f docker-compose.ci.yml ps -q web)
           docker exec "$cid" sh -lc "apk add curl 2>/dev/null || true; curl -fsS http://127.0.0.1:8000/ || exit 1"
 
   deploy:
