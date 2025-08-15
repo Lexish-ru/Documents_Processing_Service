@@ -121,6 +121,8 @@ jobs:
 
       - name: Smoke /
         run: |
+          echo "Wait for web to start..."
+          sleep 10
           docker compose exec -T web python - <<'PY'
           import urllib.request, sys
           try:
