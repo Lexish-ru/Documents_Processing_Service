@@ -103,6 +103,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create .env for CI
+        run: |
+          cat > .env <<'EOF'
+          DJANGO_SETTINGS_MODULE: config.settings
+          SECRET_KEY: dummy-ci-only
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          REDIS_URL=redis://redis:6379/0
+          DEFAULT_FROM_EMAIL=noreply@example.com
+          ADMIN_EMAIL=admin@example.com
+          EOF
+
       - name: Build & up
         run: |
          docker compose -f docker-compose.yml \
