@@ -126,7 +126,7 @@ jobs:
           docker compose exec -T web python - <<'PY'
           import urllib.request, sys
           try:
-              urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)
+              urllib.request.urlopen('http://127.0.0.1:8000/admin/', timeout=5)
               print("Smoke OK")
           except Exception as e:
               print("Smoke FAIL:", e)
