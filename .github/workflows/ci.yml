@@ -53,7 +53,7 @@ jobs:
 
     env:
       DJANGO_SETTINGS_MODULE: config.settings
-      SECRET_KEY: dummy-ci-only
+      DJANGO_SECRET_KEY: dummy-ci-only
       POSTGRES_DB: test_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
