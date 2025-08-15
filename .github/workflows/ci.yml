@@ -144,7 +144,10 @@ jobs:
           print("Smoke FAIL:", last)
           sys.exit(1)
           PY
-  
+      - name: Web logs on failure
+        if: failure()
+        run: docker compose logs --no-color web
+
   
 
   deploy:
