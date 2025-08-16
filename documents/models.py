@@ -3,7 +3,11 @@ from django.db import models
 
 
 class Document(models.Model):
+    """Модель загружаемого документа."""
+
     class Status(models.TextChoices):
+        """Статусы обработки документа."""
+
         PENDING = "PENDING", "Pending"
         APPROVED = "APPROVED", "Approved"
         REJECTED = "REJECTED", "Rejected"
@@ -14,12 +18,17 @@ class Document(models.Model):
         related_name="documents",
     )
     file = models.FileField(upload_to="uploads/%Y/%m/%d/")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         related_name="reviewed_documents",
     )

@@ -1,17 +1,21 @@
 from django.contrib import admin
 from django.utils import timezone
+
 from .models import Document
 from .tasks import send_user_document_status_email
 
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
+    """Админ-интерфейс модели Document."""
+
     list_display = ("id", "owner", "status", "uploaded_at", "reviewed_at")
     list_filter = ("status", "uploaded_at")
     search_fields = ("id", "owner__username", "owner__email")
     actions = ("approve_documents", "reject_documents")
 
     def approve_documents(self, request, queryset):
+        """Одобрить выбранные документы."""
         count = 0
         now = timezone.now()
         for doc in queryset:
@@ -26,6 +30,7 @@ class DocumentAdmin(admin.ModelAdmin):
     approve_documents.short_description = "Approve selected"
 
     def reject_documents(self, request, queryset):
+        """Отклонить выбранные документы."""
         count = 0
         now = timezone.now()
         for doc in queryset:
