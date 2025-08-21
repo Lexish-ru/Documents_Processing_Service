@@ -180,7 +180,8 @@ CSRF_TRUSTED_ORIGINS = [
     ]
 
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "20"))
-ALLOWED_FILE_EXTS = {e.strip().lower() for e in os.getenv("ALLOWED_FILE_EXTS", "pdf,doc,docx,png,jpg,jpeg,txt").split(",") if e.strip()}
+ALLOWED_FILE_EXTS = {e.strip().lower() for
+                     e in os.getenv("ALLOWED_FILE_EXTS", "pdf,doc,docx,png,jpg,jpeg,txt").split(",") if e.strip()}
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_MB * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = DATA_UPLOAD_MAX_MEMORY_SIZE

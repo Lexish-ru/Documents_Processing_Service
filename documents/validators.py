@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 import magic
-import os
 
-DEFAULT_ALLOWED_EXTS = {"pdf","doc","docx","png","jpg","jpeg","txt"}
+
+DEFAULT_ALLOWED_EXTS = {"pdf", "doc", "docx", "png", "jpg", "jpeg", "txt"}
+
 
 def validate_uploaded_file(uploaded_file):
     max_mb = int(getattr(settings, "MAX_UPLOAD_MB", 20))
@@ -12,7 +13,7 @@ def validate_uploaded_file(uploaded_file):
     if size_mb > max_mb:
         raise ValidationError(f"Файл слишком большой: {size_mb:.1f} МБ > {max_mb} МБ")
     name = uploaded_file.name or ""
-    ext = name.rsplit(".",1)[-1].lower() if "." in name else ""
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
     if ext not in allowed_exts:
         raise ValidationError(f"Недопустимое расширение .{ext}. Разрешено: {', '.join(sorted(allowed_exts))}")
     try:
