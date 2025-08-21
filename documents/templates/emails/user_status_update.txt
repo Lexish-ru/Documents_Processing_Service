@@ -1,0 +1,2 @@
+Ваш документ #{id}: {{ status }}
+{% if comment %}Причина: {{ comment }}{% endif %}

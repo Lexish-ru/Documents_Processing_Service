@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'corsheaders',
+    'django_celery_beat',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -166,18 +167,36 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "alstofly@gmail.com")
 
 CORS_ALLOW_ALL_ORIGINS = bool(int(os.getenv("CORS_ALLOW_ALL_ORIGINS", "1" if DEBUG else "0")))
 
-# если ALL_ORIGINS=0, читаем список доменов (через запятую)
 CORS_ALLOWED_ORIGINS = [
     o for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()
 ]
 
-# если используешь cookie/SessionAuth из фронта
 CORS_ALLOW_CREDENTIALS = True
 
-# ограничим CORS только API-роутами (необязательно, но полезно)
 CORS_URLS_REGEX = r"^/api/.*$"
 
-# для cookie/CSRF через другой домен (нужно при SessionAuth, DRF Browsable и админке)
 CSRF_TRUSTED_ORIGINS = [
     o for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
     ]
+
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "20"))
+ALLOWED_FILE_EXTS = {e.strip().lower() for e in os.getenv("ALLOWED_FILE_EXTS", "pdf,doc,docx,png,jpg,jpeg,txt").split(",") if e.strip()}
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_MB * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = DATA_UPLOAD_MAX_MEMORY_SIZE
+
+
+REST_FRAMEWORK.update({
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": os.getenv("DRF_THROTTLE_USER", "1000/day"),
+        "anon": os.getenv("DRF_THROTTLE_ANON", "100/day"),
+    },
+})
+
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_TASK_ALWAYS_EAGER = False

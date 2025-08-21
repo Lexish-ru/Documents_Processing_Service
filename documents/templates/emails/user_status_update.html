@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Статус документа #{{ id }}: {{ status }}</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#f6f8fb;">
+    <center role="article" aria-roledescription="email" lang="ru" style="width:100%; background:#f6f8fb;">
+      <table role="presentation" style="width:100%; border-collapse:collapse; border:0; border-spacing:0; background:#f6f8fb;">
+        <tr>
+          <td align="center" style="padding:24px 12px;">
+            <table role="presentation" style="width:100%; max-width:640px; border-collapse:collapse; border-spacing:0; background:#ffffff; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden;">
+              <tr>
+                <td style="background:#198754; padding:18px 24px; color:#ffffff; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-weight:600; font-size:18px;">
+                  Обновление статуса документа #{{ id }}
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:24px; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1f2937; font-size:14px; line-height:1.6;">
+                  <p style="margin:0 0 12px 0;">
+                    Статус:
+                    <span style="display:inline-block; padding:2px 8px; border-radius:999px; background:#e8f5ec; color:#198754; font-weight:600;">
+                      {{ status }}
+                    </span>
+                  </p>
+                  {% if comment %}
+                    <p style="margin:0 0 12px 0;">Комментарий модератора: <em>{{ comment }}</em></p>
+                  {% endif %}
+                  {% if reviewed_at %}
+                    <p style="margin:0 0 12px 0;">Проверен: {{ reviewed_at }}</p>
+                  {% endif %}
+
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:8px;">
+                    <tr>
+                      <td align="center" bgcolor="#0d6efd" style="border-radius:6px;">
+                        <a href="{{ user_document_url|default:'#' }}"
+                           style="display:inline-block; padding:10px 16px; color:#ffffff; text-decoration:none; font-weight:600; font-size:14px; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+                          Открыть в личном кабинете
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:16px 0 0 0; color:#6b7280; font-size:12px;">
+                    Если вы не ожидали это письмо — просто игнорируйте его.
+                  </p>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="background:#f8fafc; padding:16px 24px; color:#6b7280; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:12px;">
+                  Служба уведомлений Documents Service
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:12px 0 0 0; color:#9aa3af; font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif; font-size:12px;">
+              © {{ now|default:"" }} Documents Service
+            </p>
+          </td>
+        </tr>
+      </table>
+    </center>
+  </body>
+</html>
