@@ -1,8 +1,13 @@
 from rest_framework import serializers
 from documents.models import Document
+from documents.validators import validate_uploaded_file
 
 
 class DocumentSerializer(serializers.ModelSerializer):
+    def validate_file(self, value):
+        validate_uploaded_file(value)
+        return value
+
     """Сериализатор модели Document."""
 
     class Meta:

@@ -20,7 +20,15 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.conf import settings
 from django.conf.urls.static import static
 
+from django.http import HttpResponse
+
+
+def health_view(request):
+    return HttpResponse("ok")
+
+
 urlpatterns = [
+    path("health", health_view),
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema")),

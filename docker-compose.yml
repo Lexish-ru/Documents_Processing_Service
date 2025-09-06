@@ -16,6 +16,11 @@ services:
       - "6379:6379"
 
   web:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     build: .
     env_file: .env
     volumes:
@@ -39,6 +44,17 @@ services:
       - redis
       - db
     command: bash -c "celery -A config worker -l info"
+
+  celery_beat:
+     build: .
+     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+     volumes:
+       - .:/app
+     depends_on:
+       - redis
+       - db
+     restart: always
+
 
   nginx:
     image: nginx:1.27
