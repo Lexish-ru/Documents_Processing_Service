@@ -1,0 +1,177 @@
+name: Django CI
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U postgres -d test_db"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=20
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+      SECRET_KEY: dummy-ci-only
+      DJANGO_SETTINGS_MODULE: config.settings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f poetry.lock ]; then pip install poetry && poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi; else pip install -r requirements.txt; fi
+      - name: Flake8
+        run: flake8 .
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U postgres -d test_db"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=20
+
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings
+      DJANGO_SECRET_KEY: dummy-ci-only
+      POSTGRES_DB: test_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f poetry.lock ]; then
+            pip install poetry && poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
+          else
+            pip install -r requirements.txt
+          fi
+
+      - name: Wait for Postgres
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres -d test_db; do
+            echo "waiting for postgres"; sleep 2
+          done
+
+      - name: Migrate
+        run: python manage.py migrate --noinput
+
+      - name: Run tests
+        run: pytest
+
+
+  image-smoke:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env for CI
+        run: |
+          cat > .env <<'EOF'
+          DJANGO_ALLOWED_HOSTS=*
+          DJANGO_SECRET_KEY=dummy-ci-only
+          POSTGRES_DB=test_db
+          POSTGRES_USER=postgres
+          POSTGRES_PASSWORD=postgres
+          POSTGRES_HOST=db
+          POSTGRES_PORT=5432
+          REDIS_URL=redis://redis:6379/0
+          DEFAULT_FROM_EMAIL=noreply@example.com
+          ADMIN_EMAIL=admin@example.com
+          EOF
+
+      - name: Build & up
+        run: |
+         docker compose -f docker-compose.yml \
+           up -d --build db redis web
+
+      - name: Migrate
+        run: |
+          docker compose exec -T web python manage.py migrate --noinput
+
+      - name: Smoke (API up)
+        run: |
+          # ждём до ~60 сек и считаем 2xx/3xx/4xx = сервис ЖИВ
+          docker compose exec -T web python - <<'PY'
+          import time, sys, urllib.request, urllib.error
+          URLS = ['http://127.0.0.1:8000/api/schema/', 'http://127.0.0.1:8000/admin/login/']
+          deadline = time.time() + 60
+          last = None
+          while time.time() < deadline:
+              for u in URLS:
+                  try:
+                      with urllib.request.urlopen(u, timeout=2) as r:
+                          print("HTTP UP", u, r.status)
+                          sys.exit(0)
+                  except urllib.error.HTTPError as e:
+                      if 400 <= e.code < 500:  # 404/403 — тоже ок, сервер жив
+                          print("HTTP UP", u, e.code)
+                          sys.exit(0)
+                      last = e
+                  except Exception as e:
+                      last = e
+              time.sleep(2)
+          print("Smoke FAIL:", last)
+          sys.exit(1)
+          PY
+      - name: Web logs on failure
+        if: failure()
+        run: docker compose logs --no-color web
+
+  
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: image-smoke
+
+    steps:
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_KEY }}
+
+    - name: Add Server to known_hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Copy project files to server
+      run: |
+        rsync -avz --exclude '__pycache__' . ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_DIR }}
+
+    - name: Run docker-compose up
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.DEPLOY_DIR }} && docker-compose pull &&
+        docker-compose up -d
+        "
